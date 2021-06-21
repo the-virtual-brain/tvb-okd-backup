@@ -1,0 +1,52 @@
+variables:
+  # you need to use $$ to escape $ in the variable
+  docker_registry_user: "robot$$gitlab"
+  # increment the tag for new release
+  DOCKER_IMAGE_TAG: "1.1"
+
+
+stages:
+  - build
+  - release
+
+#
+# BUILD
+#
+build_dev:
+  stage: build
+  script:
+    - docker build -t docker-registry.ebrains.eu/okd_tools/postgresql_backups:dev.$CI_PIPELINE_ID .
+  only:
+    - devel
+  tags:
+    - shell-runner-1
+
+build_prod:
+  stage: build
+  script:
+    - docker build -t docker-registry.ebrains.eu/okd_tools/postgresql_backups:$DOCKER_IMAGE_TAG .
+  only:
+    - master
+  tags:
+    - shell-runner-1
+
+#
+# RELEASE
+#
+release_dev:
+  stage: release
+  script:
+    - docker login -u $docker_registry_user -p $docker_registry_prod_token docker-registry.ebrains.eu
+    - docker push docker-registry.ebrains.eu/okd_tools/postgresql_backups:dev.$CI_PIPELINE_ID
+  tags:
+    - shell-runner-1
+  when: manual
+
+release_prod:
+  stage: release
+  script:
+    - docker login -u $docker_registry_user -p $docker_registry_prod_token docker-registry.ebrains.eu
+    - docker push docker-registry.ebrains.eu/okd_tools/postgresql_backups:$DOCKER_IMAGE_TAG
+  tags:
+    - shell-runner-1
+  when: manual
