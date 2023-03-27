@@ -1,0 +1,43 @@
+pipeline {
+    agent {
+        label 'docker_build'
+    }
+
+    environment {
+        FULL_DOCKER_IMAGE_NAME = 'thevirtualbrain/okd_postgresql_backups'
+    }
+
+    stages {
+
+
+        stage ('Build tvb-run docker image') {
+            steps {
+                unstash 'step1'
+                unzip zipFile: 'tvb_build/build/TVB_build_step1.zip', dir: 'tvb_build/docker/step1'
+                script {
+                    VERSION_TAG = "1.3"
+                    withCredentials([usernamePassword(credentialsId: 'tvb-revision', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
+                        LAST_SHA = sh (script: "curl -s -H 'Authorization: Bearer $GIT_PASSWORD' 'https://api.github.com/repos/rarescodemart/okd_postgresql_backups/commits/HBP-184' | grep sha | head -1 | cut -d ':' -f2 | tr -d '\",'", returnStdout: true).trim()
+                    }
+                    withDockerRegistry(credentialsId: 'tvb_on_docker_hub') {
+                        def dockerContext = "."
+                        def dockerFile = "${dockerContext}/Dockerfile"
+                        def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:'${VERSION_TAG}'", "--build-arg LAST_SHA='${LAST_SHA}' -f ${dockerFile} ${dockerContext}")
+                        dockerImage.push()
+                        dockerImage.push('latest')
+                    }
+                }
+            }
+        }
+    }
+    post {
+        changed {
+            mail to: 'rares.horge@codemart.ro',
+            subject: "Jenkins Pipeline ${currentBuild.fullDisplayName} changed status",
+            body: """
+                Result: ${currentBuild.result}
+                Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'
+                Check console output at ${env.BUILD_URL}"""
+        }
+    }
+}
