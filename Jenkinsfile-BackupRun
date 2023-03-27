@@ -10,17 +10,12 @@ pipeline {
     stages {
 
 
-        stage ('Build tvb-run docker image') {
+        stage ('Build okd_postgresql_backups docker image') {
             steps {
                 script {
                     VERSION_TAG = "1.2"
-                    withCredentials([usernamePassword(credentialsId: 'tvb-revision', passwordVariable: 'GIT_PASSWORD', usernameVariable: 'GIT_USERNAME')]) {
-                        LAST_SHA = sh (script: "curl -s -H 'Authorization: Bearer $GIT_PASSWORD' 'https://api.github.com/repos/rarescodemart/okd_postgresql_backups/commits/HBP-184' | grep sha | head -1 | cut -d ':' -f2 | tr -d '\",'", returnStdout: true).trim()
-                    }
                     withDockerRegistry(credentialsId: 'tvb_on_docker_hub') {
-                        def dockerContext = "."
-                        def dockerFile = "${dockerContext}/Dockerfile"
-                        def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:'${VERSION_TAG}'", "--build-arg LAST_SHA='${LAST_SHA}' -f ${dockerFile} ${dockerContext}")
+                        def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:'${VERSION_TAG}'")
                         dockerImage.push()
                         dockerImage.push('latest')
                     }
