@@ -15,7 +15,7 @@ pipeline {
                 script {
                     VERSION_TAG = "1.2"
                     withDockerRegistry(credentialsId: 'tvb_on_docker_hub') {
-                        def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:'${VERSION_TAG}'")
+                        def dockerImage = docker.build("${FULL_DOCKER_IMAGE_NAME}:'${VERSION_TAG}'", "postgres-backup")
                         dockerImage.push()
                         dockerImage.push('latest')
                     }
