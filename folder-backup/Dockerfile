@@ -8,4 +8,6 @@ RUN apk add --update-cache \
 
 COPY rsync.sh .
 
+RUN chmod a+x ./rsync.sh
+
 ENTRYPOINT [ "./rsync.sh" ]
